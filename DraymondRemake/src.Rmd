@@ -11,28 +11,32 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(knitr)
-library(kableExtra)
+library(kableExtra) #printing table
 library(grDevices)
 library(tidyverse)
-library(formattable)
-library(DT)
+library(formattable) #formating
+library(DT) #formating
+library(grDevices)  # For colorRampPalette
+library(viridisLite)  # For viridis palette
+library(scales)       # For rescale function
+
 # Read the dataset
 draymond_data <- read.csv("draymond.csv")
 ```
 
-# Table 1 (not working)
+# Table 1 
 
 
 ```{r}
 
-# Aggregate data by player, calculating total possessions and average DRAYMOND separately
+# Aggregate data by player (calculating total possessions and average DRAYMOND separately)
 aggregated_data <- aggregate(possessions ~ player, data = draymond_data, FUN = sum)
 aggregated_data$DRAYMOND <- aggregate(DRAYMOND ~ player, data = draymond_data, FUN = mean)$DRAYMOND
 
-# Filter the aggregated data for players with at least 10,000 possessions played
+# At least 10,000 possessions played
 filtered_data <- aggregated_data[aggregated_data$possessions >= 10000, ]
 
-# Order the data by mean DRAYMOND rating in descending order
+# Data in descending order
 filtered_data <- filtered_data[order(filtered_data$DRAYMOND, decreasing = TRUE), ]
 
 # Define the color gradient
@@ -71,21 +75,35 @@ kable(
 
 # Table 2: 
 
-
 ```{r}
+# Filter the dataset for the 2019 season
+season_2019_data <- draymond_data[draymond_data$season == "2019", ]
 
-library(grDevices)  # For colorRampPalette
-```
+# Filter for players with a minimum of 2,000 possessions played
+filtered_data <- season_2019_data[season_2019_data$possessions >= 2000, ]
+
+# Sort the positive and negative data by DRAYMOND defensive ratings
+draymond_positive <- filtered_data[filtered_data$DRAYMOND > 0, ]
+draymond_negative <- filtered_data[filtered_data$DRAYMOND < 0, ]
 
 
-```{r}
-library(knitr)
-library(kableExtra)
-library(viridisLite)  # For viridis palette
-library(scales)       # For rescale function
-```
+draymond_positive <- draymond_positive[order(draymond_positive$DRAYMOND), ]
+draymond_negative <- draymond_negative[order(draymond_negative$DRAYMOND, decreasing = TRUE), ]
 
-```{r}
+# Define color gradient palettes
+blue_palette <- colorRampPalette(c("#FFFFFF", "#005fff"))
+pink_palette <- colorRampPalette(c("#FFFFFF", "#ff69b4"))
+
+# Apply gradient to each subset
+draymond_positive$DRAYMOND_color <- blue_palette(nrow(draymond_positive))
+draymond_negative$DRAYMOND_color <- pink_palette(nrow(draymond_negative))
+
+# Combine 
+colored_data <- rbind(draymond_positive, draymond_negative)
+
+# Sort the combined data
+sorted_data <- colored_data[order(colored_data$DRAYMOND, decreasing = TRUE), ]
+
 # spec_color2 function
 spec_color2 <- function(x, alpha = 1, begin = c(0, 0, 1), middle = c(1, 1, 1), end = c(1, 0, 1), na_color = "#BBBBBB", scale_from = NULL) {
   n <- length(x)
@@ -104,10 +122,10 @@ spec_color2 <- function(x, alpha = 1, begin = c(0, 0, 1), middle = c(1, 1, 1), e
   return(color_code)
 }
 
-# Apply the color gradient to the DRAYMOND column
+# Apply gradient to the DRAYMOND column
 sorted_data$DRAYMOND_color <- spec_color2(sorted_data$DRAYMOND, begin = c(0, 0, 1), middle = c(1, 1, 1), end = c(1, 0, 1))
 
-# Print the table with kable
+# Print the table
 kable(
   sorted_data[, c("player", "possessions", "DRAYMOND")], 
   col.names = c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING"),
