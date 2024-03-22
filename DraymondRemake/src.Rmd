@@ -21,152 +21,62 @@ draymond_data <- read.csv("draymond.csv")
 ```
 
 # Table 1 (not working)
-```{r, eval = FALSE}
-library(knitr)
-library(kableExtra)
 
-# Read the dataset
-draymond_data <- read.csv("draymond.csv")
-
-# Aggregate data by player
-aggregated_data <- aggregate(cbind(possessions, DRAYMOND) ~ player, data = draymond_data, FUN = function(x) c(sum(x), mean(x)))
-
-# Filter the aggregated data for players with at least 10,000 possessions played
-filtered_data <- aggregated_data[aggregated_data$possessions[,1] >= 10000, ]
-
-# Define the colors for the gradient
-blue <- "blue"
-pink <- "pink"
-white <- "white"
-
-# Create a function to map colors based on DRAYMOND values
-color_mapping <- function(x) {
-  ifelse(x > 0, blue,
-         ifelse(x < 0, pink, white))
-}
-
-# Apply the color mapping function to the DRAYMOND column
-filtered_data$DRAYMOND_color <- color_mapping(filtered_data$DRAYMOND[, 2])
-
-# Format DRAYMOND values with color
-filtered_data$DRAYMOND <- cell_spec(filtered_data$DRAYMOND[, 2], color = filtered_data$DRAYMOND_color)
-
-# Rename the columns
-colnames(filtered_data) <- c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING")
-
-# Print the table with kable
-kable(filtered_data[, c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING")], format = "html") 
-#%>%
-  #kable_styling()
-
-```
 
 ```{r}
-library(knitr)
-library(kableExtra)
 
-# Read the dataset
-draymond_data <- read.csv("draymond.csv")
-
-# Aggregate data by player
-aggregated_data <- aggregate(cbind(possessions, DRAYMOND) ~ player, data = draymond_data, FUN = function(x) c(sum(x), mean(x)))
-
-# Remove unnecessary columns from aggregated data
-aggregated_data <- aggregated_data[, -c(2, 4)]
+# Aggregate data by player, calculating total possessions and average DRAYMOND separately
+aggregated_data <- aggregate(possessions ~ player, data = draymond_data, FUN = sum)
+aggregated_data$DRAYMOND <- aggregate(DRAYMOND ~ player, data = draymond_data, FUN = mean)$DRAYMOND
 
 # Filter the aggregated data for players with at least 10,000 possessions played
 filtered_data <- aggregated_data[aggregated_data$possessions >= 10000, ]
 
-# Define the colors for the gradient
-blue <- "blue"
-pink <- "pink"
-white <- "white"
+# Order the data by mean DRAYMOND rating in descending order
+filtered_data <- filtered_data[order(filtered_data$DRAYMOND, decreasing = TRUE), ]
 
-# Create a function to map colors based on DRAYMOND values
-color_mapping <- function(x) {
-  ifelse(x > 0, blue,
-         ifelse(x < 0, pink, white))
+# Define the color gradient
+spec_color2 <- function(x, alpha = 1, begin = c(0, 0, 1), middle = c(1, 1, 1), end = c(1, 0, 1), na_color = "#BBBBBB", scale_from = NULL) {
+  n <- length(x)
+  if (is.null(scale_from)) {
+    x <- scales::rescale(x, c(0, 1))
+  } else {
+    x <- scales::rescale(x, to = c(0, 1), from = scale_from)
+  }
+  
+  red <- c(seq(begin[1], middle[1], length.out = n/2), seq(middle[1], end[1], length.out = n/2))
+  green <- c(seq(begin[2], middle[2], length.out = n/2), seq(middle[2], end[2], length.out = n/2))
+  blue <- c(seq(begin[3], middle[3], length.out = n/2), seq(middle[3], end[3], length.out = n/2))
+  
+  color_code <- grDevices::rgb(red = red, green = green, blue = blue, alpha = alpha)
+  color_code[is.na(color_code)] <- na_color
+  return(color_code)
 }
 
-# Apply the color mapping function to the DRAYMOND column
-filtered_data$DRAYMOND_color <- color_mapping(filtered_data$DRAYMOND)
-
-# Rename the columns
-colnames(filtered_data) <- c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING")
+# Apply the color gradient to the DRAYMOND column
+filtered_data$DRAYMOND_color <- spec_color2(filtered_data$DRAYMOND, begin = c(0, 0, 1), middle = c(1, 1, 1), end = c(1, 0, 1))
 
 # Print the table with kable
-kable(filtered_data[, c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING")], 
-      format = "html") %>%
+kable(
+  filtered_data[, c("player", "possessions", "DRAYMOND")],
+  col.names = c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING"),
+  format = "html",
+  escape = FALSE, row.names = FALSE
+) %>%
   kable_styling() %>%
-  column_spec(1, color = filtered_data$DRAYMOND_color)
-
+  column_spec(3, background = filtered_data$DRAYMOND_color)
 
 ```
+
 
 # Table 2: 
 
 
 ```{r}
-library(knitr)
-library(kableExtra)
+
 library(grDevices)  # For colorRampPalette
 ```
 
-```{r}
-library(knitr)
-library(kableExtra)
-library(grDevices)  # For colorRampPalette
-
-# Read the dataset
-draymond_data <- read.csv("draymond.csv")
-
-# Filter the dataset for the 2019 season
-season_2019_data <- draymond_data[draymond_data$season == "2019", ]
-
-# Filter for players with a minimum of 2,000 possessions played
-filtered_data <- season_2019_data[season_2019_data$possessions >= 2000, ]
-
-# Split data into DRAYMOND > 0 and DRAYMOND < 0
-draymond_positive <- filtered_data[filtered_data$DRAYMOND > 0, ]
-draymond_negative <- filtered_data[filtered_data$DRAYMOND < 0, ]
-
-# Sort the positive and negative data by DRAYMOND defensive ratings
-draymond_positive <- draymond_positive[order(draymond_positive$DRAYMOND), ]
-draymond_negative <- draymond_negative[order(draymond_negative$DRAYMOND,decreasing = TRUE), ]
-
-# Define a color gradient palette for positive DRAYMOND values (blue)
-blue_palette <- colorRampPalette(c("#FFFFFF", "#005fff"))
-
-# Define a color gradient palette for negative DRAYMOND values (pink)
-pink_palette <- colorRampPalette(c("#FFFFFF", "#ff69b4"))
-
-# Apply the color gradient to each subset of data
-draymond_positive$DRAYMOND_color <- blue_palette(nrow(draymond_positive))
-draymond_negative$DRAYMOND_color <- pink_palette(nrow(draymond_negative))
-
-# Combine the subsets back together
-colored_data <- rbind(draymond_positive, draymond_negative)
-
-# Sort the combined data by DRAYMOND defensive ratings
-sorted_data <- colored_data[order(colored_data$DRAYMOND, decreasing = TRUE), ]
-
-color_gradient <- scales::col_numeric(
-  palette = c("pink", "white", "blue"),
-  domain = c(min(sorted_data$DRAYMOND), 0, max(sorted_data$DRAYMOND))
-)
-
-# Print the table with kable
-kable(
-  sorted_data[, c("player", "possessions", "DRAYMOND")], 
-  col.names = c("Player", "Possessions Played", "DRAYMOND Defensive Rating"),
-  escape = FALSE,
-  row.names = FALSE
-) %>%
-  kable_styling() %>%
-  column_spec(3, color = sorted_data$DRAYMOND_color) 
-
-
-```
 
 ```{r}
 library(knitr)
@@ -176,7 +86,7 @@ library(scales)       # For rescale function
 ```
 
 ```{r}
-# Define spec_color2 function
+# spec_color2 function
 spec_color2 <- function(x, alpha = 1, begin = c(0, 0, 1), middle = c(1, 1, 1), end = c(1, 0, 1), na_color = "#BBBBBB", scale_from = NULL) {
   n <- length(x)
   if (is.null(scale_from)) {
@@ -200,7 +110,7 @@ sorted_data$DRAYMOND_color <- spec_color2(sorted_data$DRAYMOND, begin = c(0, 0, 
 # Print the table with kable
 kable(
   sorted_data[, c("player", "possessions", "DRAYMOND")], 
-  col.names = c("Player", "Possessions Played", "DRAYMOND Defensive Rating"),
+  col.names = c("PLAYER", "POSSESSIONS PLAYED", "DRAYMOND RATING"),
   escape = FALSE,
   row.names = FALSE
 ) %>%
